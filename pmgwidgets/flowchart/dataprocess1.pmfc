@@ -1,0 +1,91 @@
+{
+    "nodes": {
+        "2": {
+            "text": "HistPlot",
+            "id": "2",
+            "pos": [
+                30.0,
+                -195.0
+            ],
+            "icon": "/home/hzy/Documents/Developing/Python/pyminer_dist_debian_deepin/pyminer/pmgwidgets/flowchart/core/icons/logo.png",
+            "content": {
+                "type": "HistPlot",
+                "info": {}
+            },
+            "input_ports": {
+                "2:input:1": {
+                    "id": "2:input:1",
+                    "pos": [
+                        35.0,
+                        -135.0
+                    ],
+                    "contents": {},
+                    "text": "in1"
+                }
+            },
+            "output_ports": {}
+        },
+        "3": {
+            "text": "Variable From Workspace",
+            "id": "3",
+            "pos": [
+                -285.0,
+                -175.0
+            ],
+            "icon": "/home/hzy/Documents/Developing/Python/pyminer_dist_debian_deepin/pyminer/pmgwidgets/flowchart/core/icons/logo.png",
+            "content": {
+                "type": "GetVariable",
+                "info": {}
+            },
+            "input_ports": {},
+            "output_ports": {
+                "3:output:1": {
+                    "id": "3:output:1",
+                    "pos": [
+                        -180.0,
+                        -115.0
+                    ],
+                    "contents": {},
+                    "text": "out"
+                }
+            }
+        },
+        "4": {
+            "text": "Variable To Workspace",
+            "id": "4",
+            "pos": [
+                20.0,
+                -15.0
+            ],
+            "icon": "/home/hzy/Documents/Developing/Python/pyminer_dist_debian_deepin/pyminer/pmgwidgets/flowchart/core/icons/logo.png",
+            "content": {
+                "type": "SetVariable",
+                "info": {}
+            },
+            "input_ports": {
+                "4:input:1": {
+                    "id": "4:input:1",
+                    "pos": [
+                        25.0,
+                        45.0
+                    ],
+                    "contents": {},
+                    "text": "in"
+                }
+            },
+            "output_ports": {}
+        }
+    },
+    "connections": [
+        {
+            "start_id": "3:output:1",
+            "end_id": "2:input:1",
+            "mid_positions": []
+        },
+        {
+            "start_id": "3:output:1",
+            "end_id": "4:input:1",
+            "mid_positions": []
+        }
+    ]
+}

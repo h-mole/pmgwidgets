@@ -1,0 +1,95 @@
+{
+    "nodes": {
+        "8": {
+            "text": "SendToWorkSpace",
+            "id": "8",
+            "pos": [
+                25.0,
+                -50.0
+            ],
+            "icon": "E:\\Python\\pyminer_bin\\PyMiner\\bin\\pmgwidgets\\flowchart\\icons\\logo.png",
+            "content": {
+                "code": "def function(var):\r\n    from pmgwidgets import BaseClient\r\n    c = BaseClient()\r\n    c.set_var(var_name,var)\r\n    return []",
+                "type": "function",
+                "params": [
+                    [
+                        "line_ctrl",
+                        "var_name",
+                        "Variable Name",
+                        "var"
+                    ]
+                ],
+                "ports_changable": [
+                    false,
+                    false
+                ]
+            },
+            "input_ports": {
+                "8:input:1": {
+                    "id": "8:input:1",
+                    "pos": [
+                        30.0,
+                        10.0
+                    ],
+                    "contents": {},
+                    "text": "var"
+                }
+            },
+            "output_ports": {}
+        },
+        "10": {
+            "text": "GetDBTable",
+            "id": "10",
+            "pos": [
+                -300.0,
+                -90.0
+            ],
+            "icon": "E:\\Python\\pyminer_bin\\PyMiner\\bin\\pmgwidgets\\flowchart\\icons\\logo.png",
+            "content": {
+                "code": "def function():\r\n    global table_name, conn_name\r\n    from pmtoolbox import connect_to_database\r\n    from pmtoolbox import query\r\n    print(conn_name)\r\n    l = conn_name.split('-')\r\n    if len(l)<2:\r\n        return [None]\r\n    dbtype, name = l\r\n    db = connect_to_database(name,dbtype)\r\n    print('select * from %s' % table_name,db)\r\n    result = query(db, 'select * from %s' % table_name)\r\n    print(result)\r\n    return [result.get('data')]\r\n\r\ndef refresh(content):\r\n    from pmtoolbox import get_all_accounts_list\r\n    for i,p in enumerate(content.params):\r\n        if p[1]=='conn_name':\r\n            l = list(p)\r\n            l[4] = get_all_accounts_list()\r\n            print(l[4])\r\n            l[3] = l[3] if l[3] in l[4] else l[4][0]\r\n            content.params[i] = l\r\n            break\r\n    print(content.params)",
+                "type": "function",
+                "params": [
+                    [
+                        "line_ctrl",
+                        "table_name",
+                        "DBName",
+                        "scores"
+                    ],
+                    [
+                        "combo_ctrl",
+                        "conn_name",
+                        "Connection Name",
+                        "admin2",
+                        [
+                            "admin2",
+                            "admin5"
+                        ]
+                    ]
+                ],
+                "ports_changable": [
+                    false,
+                    false
+                ]
+            },
+            "input_ports": {},
+            "output_ports": {
+                "10:output:1": {
+                    "id": "10:output:1",
+                    "pos": [
+                        -195.0,
+                        -30.0
+                    ],
+                    "contents": {},
+                    "text": "output"
+                }
+            }
+        }
+    },
+    "connections": [
+        {
+            "start_id": "10:output:1",
+            "end_id": "8:input:1",
+            "mid_positions": []
+        }
+    ]
+}

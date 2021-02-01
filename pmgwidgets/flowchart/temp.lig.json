@@ -1,0 +1,111 @@
+[
+    {
+        "id": "5",
+        "type": "Scope",
+        "parameters": [],
+        "out-ports": []
+    },
+    {
+        "id": "9",
+        "type": "Integrator",
+        "parameters": [],
+        "out-ports": [
+            {
+                "name": "output",
+                "destination": [
+                    {
+                        "id": "5",
+                        "in-port": "input"
+                    },
+                    {
+                        "id": "10",
+                        "in-port": "right"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "id": "10",
+        "type": "Calculator",
+        "parameters": [
+            {
+                "name": "type",
+                "value": "-"
+            }
+        ],
+        "out-ports": [
+            {
+                "name": "result",
+                "destination": [
+                    {
+                        "id": "13",
+                        "in-port": "left"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "id": "11",
+        "type": "Constant",
+        "parameters": [
+            {
+                "name": "value",
+                "value": 1.0
+            }
+        ],
+        "out-ports": [
+            {
+                "name": "value",
+                "destination": [
+                    {
+                        "id": "10",
+                        "in-port": "left"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "id": "12",
+        "type": "Integrator",
+        "parameters": [],
+        "out-ports": [
+            {
+                "name": "output",
+                "destination": [
+                    {
+                        "id": "9",
+                        "in-port": "input"
+                    },
+                    {
+                        "id": "13",
+                        "in-port": "right"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "id": "13",
+        "type": "Calculator",
+        "parameters": [
+            {
+                "name": "type",
+                "value": "-"
+            }
+        ],
+        "out-ports": [
+            {
+                "name": "result",
+                "destination": [
+                    {
+                        "id": "12",
+                        "in-port": "input"
+                    }
+                ]
+            }
+        ]
+    }
+]

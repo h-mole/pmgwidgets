@@ -1,0 +1,52 @@
+{
+    "nodes": {
+        "1": {
+            "text": "DataReplace",
+            "id": "1",
+            "pos": [
+                -135.0,
+                -80.0
+            ],
+            "icon": "/home/hzy/Documents/Developing/Python/pyminer_dist_debian_deepin/pyminer/pmgwidgets/flowchart/core/icons/logo.png",
+            "content": {
+                "type": "DataReplace",
+                "info": {
+                    "regulations": [
+                        {
+                            "input_col_name": "",
+                            "output_col_name": "",
+                            "str_to_replace": "aaa",
+                            "replace_with": "bbb",
+                            "match_words": true,
+                            "regex": false,
+                            "case_sensitive": false
+                        }
+                    ]
+                }
+            },
+            "input_ports": {
+                "1:input:1": {
+                    "id": "1:input:1",
+                    "pos": [
+                        -130.0,
+                        -20.0
+                    ],
+                    "contents": {},
+                    "text": "in"
+                }
+            },
+            "output_ports": {
+                "1:output:1": {
+                    "id": "1:output:1",
+                    "pos": [
+                        -30.0,
+                        -20.0
+                    ],
+                    "contents": {},
+                    "text": "out"
+                }
+            }
+        }
+    },
+    "connections": []
+}
