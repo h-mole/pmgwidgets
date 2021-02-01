@@ -23,6 +23,7 @@ setup(
     url='https://gitee.com/hzy15610046011/pyminer_comm',
     install_requires=[
         'qtpy',
+        'chardet'
     ],
     classifiers=[
         'Operating System :: OS Independent',

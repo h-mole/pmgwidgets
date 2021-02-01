@@ -6,6 +6,15 @@ from pmgwidgets.widgets.extended.base.baseextendedwidget import BaseExtendedWidg
 
 class PMGComboCtrl(BaseExtendedWidget):
     def __init__(self, layout_dir: str, title: str, initial_value: Any, choices: list, texts=None):
+        """
+        ComboBox control to select values
+        Args:
+            layout_dir:
+            title:
+            initial_value:
+            choices:
+            texts:
+        """
         super().__init__(layout_dir)
         self.choices = []
         self.text_list = []

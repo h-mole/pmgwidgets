@@ -7,12 +7,12 @@ class PMGNumberCtrl(PMGBaseEntryCtrl):
     用于输入数值。
     """
 
-    def __init__(self, layout_dir: str, title: str, initial_value: int, unit: str = '', rang: tuple = None):
+    def __init__(self, layout_dir: str, title: str, initial_value: int, unit: str = '', range: tuple = None):
         super().__init__(layout_dir=layout_dir)
         self.on_check_callback = None
-        if rang is None:
-            rang = (float('-inf'), float('inf'))
-        if isinstance(initial_value, int) and isinstance(rang[0], int) and isinstance(rang[1], int):
+        if range is None:
+            range = (float('-inf'), float('inf'))
+        if isinstance(initial_value, int) and isinstance(range[0], int) and isinstance(range[1], int):
             self.num_type = int
         else:
             self.num_type = float
@@ -31,7 +31,7 @@ class PMGNumberCtrl(PMGBaseEntryCtrl):
         entryLayout.addWidget(self.ctrl)
         entryLayout.addWidget(self.postfix)
 
-        self.min, self.max = rang
+        self.min, self.max = range
         self.accury = initial_value
         self.set_value(initial_value)
 
