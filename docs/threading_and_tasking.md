@@ -15,7 +15,7 @@ Warnings/警告：
 
 NOTES/注意：
 
-- To be as simple as possible, the demos in this document is all-proress-oriented. In those demos, let the executor object to be globle is a way to keep reference. When using object-oriented programming, you could let it be a property of a widget.
+- To be as simple as possible, the demos in this document is all-process-oriented. In those demos, let the executor object to be global is a way to keep reference. When using object-oriented programming, you could let it be a property of a widget.
 
   为了简单起见，本文档中的实例都是面向过程的。在示例中将执行器对象定义为全局变量，就是保持引用的一种方式。而当使用面向对象程序设计方式时，将其作为某一界面或者某一控件的属性，也不失为一种可行的解决方案。
 

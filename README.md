@@ -104,6 +104,7 @@ if __name__ == '__main__':
 
 
 ![](figures/basic/filetree.png)
+For more details of filetree, [CLICK HERE](docs/filetree_tutorial.md)
 
 ### Simpler QThread implementation
 
@@ -155,79 +156,3 @@ When running, click the 'run' button to make the background thread run. After th
 
 For more detailed docs of Simpler QThread, [CLICK HERE](docs/threading_and_tasking.md)
 
-信号
-----------
-
-============================================
-
-======================================================================================= 信号 说明
-============================================
-======================================================================================= new_file_signal = Signal(str)
-新建文件信号，返回一个参数，是新建文件的绝对路径 new_folder_signal = Signal(str)             新建文件夹信号，返回一个参数，是新建文件夹的绝对路径 delete_file_signal =
-Signal(str)            删除文件或者文件夹信号，返回一个参数，是文件夹的绝对路径。 rename_file_signal = Signal(str, str)
-文件重命名的信号，返回两个参数，分别是重命名之前的绝对路径和重命名之后的绝对路径。 ============================================
-=======================================================================================
-
-.. note::
-
-    以上信号都是只有操作成功才会被触发的。
-    **如果操作不成功（比如重命名时存在相同文件、删除文件时权限不够），那么就不会触发。**。
-
-
-相关函数和方法
-==============
-
-文件操作
-------------
-
-rename_file(prev_absolute_path:str, new_absolute_path:str)->bool
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-重命名文件或者文件夹
-
-prev_absolute_path:之前的绝对路径
-
-new_absolute_path:新的绝对路径
-
-返回值：True为操作成功，False为不成功（比如已有文件或者文件夹与新的名称重名）
-
-move_to_trash（path:str）->bool ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-path:要移到回收站的文件夹的绝对路径。
-
-返回值：True为操作成功，False为不成功。
-
-执行系统命令
------------------
-
-[!TODO]
-
-run_command_in_terminal(打开系统终端并在其中执行命令。)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-在终端命令行中运行命令。
-
-.. code-block:: python
-
-    from pmgwidgets import run_command_in_terminal
-
-
-    def test_run_in_terminal():
-        import time
-        run_command_in_terminal('dir', close_mode='no')
-        time.sleep(1)
-        run_command_in_terminal('dir', close_mode='wait_key')
-        time.sleep(1)
-        run_command_in_terminal('dir', close_mode='auto')
-
-
-    test_run_in_terminal()
-
-close_mode的意思时命令执行完之后终端怎么做。当其为 ``no`` 的时候，终端不退出，可以输入命令继续执行下一条； 显示为 ``wait_key`` 的时候，终端等待按任意键退出； 显示为 ``auto``
-的时候，终端执行完之后就退出——所以执行 ``dir`` 一类秒完成的命令，就会闪现一下，然后便不见了。
-
-
-
-```
-
-```
