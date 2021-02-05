@@ -5,12 +5,13 @@ from setuptools import setup, find_packages
 import os
 import shutil
 
-dist_path = os.path.join(os.path.dirname(__file__), 'dist')
-if os.path.exists(dist_path):
-    shutil.rmtree(dist_path)
+for name in ['dist', 'build']:
+    dist_path = os.path.join(os.path.dirname(__file__), name)
+    if os.path.exists(dist_path):
+        shutil.rmtree(dist_path)
 setup(
     name='pmgwidgets',
-    version='0.9',
+    version='0.9.2',
     description=(
             'A Widget Collection for PyMiner Project. Especially for creating forms by simple jsons.\n' +
             'This package is developed by PyMiner developing team.'
@@ -39,4 +40,5 @@ setup(
         'Programming Language :: Python :: 3.9',
         'Topic :: Software Development :: Libraries'
     ],
+    include_package_data=True
 )

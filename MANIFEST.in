@@ -1,0 +1,1 @@
+recursive-include pmgwidgets *.png *.svg *.ts *.qm

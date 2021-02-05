@@ -204,12 +204,12 @@ class PMGFilesTreeview(QTreeView):
         self.pasteAction.setShortcut(QKeySequence('Ctrl+V'))
         self.deleteAction.setShortcut(QKeySequence('Delete'))
 
-        self.rename_shortcut = QShortcut(QKeySequence('F2'), self)
-        self.copy_shortcut = QShortcut(QKeySequence.Copy, self)
-        self.paste_shortcut = QShortcut(QKeySequence.Paste, self)
-        self.delete_shortcut = QShortcut(QKeySequence('Delete'), self)
-        self.open_shortcut = QShortcut(QKeySequence('Return'), self)
-        self.goto_parent_path_shortcut = QShortcut(QKeySequence('Backspace'), self)
+        self.rename_shortcut = QShortcut(QKeySequence('F2'), self, context=Qt.WidgetShortcut)
+        self.copy_shortcut = QShortcut(QKeySequence.Copy, self, context=Qt.WidgetShortcut)
+        self.paste_shortcut = QShortcut(QKeySequence.Paste, self, context=Qt.WidgetShortcut)
+        self.delete_shortcut = QShortcut(QKeySequence('Delete'), self, context=Qt.WidgetShortcut)
+        self.open_shortcut = QShortcut(QKeySequence('Return'), self, context=Qt.WidgetShortcut)
+        self.goto_parent_path_shortcut = QShortcut(QKeySequence('Backspace'), self, context=Qt.WidgetShortcut)
 
     def show_context_menu(self):
         """
