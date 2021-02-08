@@ -97,17 +97,30 @@ class PMGPanel(QFrame):
         self.layout()
         self.set_items(views)
 
-        self._param_changd_callbacks: Dict[str, Callable] = {}
+        self._param_changd_callbacks: Dict[str, List[Callable]] = {}
 
     def set_param_changed_callback(self, param: str, callback: Callable):
-        assert param not in self._param_changd_callbacks.keys(), \
-            repr(param) + ' is already in callback dict\'s keys: %s ' % (repr(self._param_changd_callbacks.keys()))
+        """
+
+        Args:
+            param:
+            callback:
+
+        Returns:
+
+        """
+        # assert param not in self._param_changd_callbacks.keys(), \
+        #     repr(param) + ' is already in callback dict\'s keys: %s ' % (repr(self._param_changd_callbacks.keys()))
         assert param in self.widgets_dic.keys(), 'widget with param \'%s\' is not found in this PMGPanel' % param
-        self._param_changd_callbacks[param] = callback
+        if param not in self._param_changd_callbacks.keys():
+            self._param_changd_callbacks[param] = [callback]
+        else:
+            self._param_changd_callbacks[param].append(callback)
 
     def on_param_changed(self, param):
         if param in self._param_changd_callbacks.keys():
-            self._param_changd_callbacks[param](self.get_value())
+            for callback in self._param_changd_callbacks[param]:
+                callback(self.get_value())
 
     def set_debug_mode(self, debug: bool):
         """
@@ -234,6 +247,39 @@ class PMGPanel(QFrame):
         for k in self.widgets_dic:
             result[k] = self.widgets_dic[k].get_value()
         return result
+
+    def get_value_with_filter(self, filter: str = 'enabled_and_visible'):
+        assert filter in {'enabled', 'visible', 'enabled_and_visible'}
+        result = {}
+        for k in self.widgets_dic:
+            widget = self.widgets_dic[k]
+            if filter == 'enabled_and_visible' and widget.isEnabled() and widget.isVisible():
+                result[k] = widget.get_value()
+            elif (widget.isVisible() and filter == 'visible') or (widget.isEnabled() and filter == 'enabled'):
+                result[k] = widget.get_value()
+        return result
+
+    def set_as_controller(self, controller_param: str, target_params: List[str], trigger_value: Any,
+                          action='enable'):
+        assert action in ['enable', 'disable', 'show', 'hide']
+        assert isinstance(target_params, list)
+        for target_param in target_params:
+            assert target_param in self.widgets_dic.keys(), 'Widget %s does not exist!, all widgets: %s' % (
+                target_param, self.widgets_dic)
+
+        def callback(params):
+            if action == 'enable' or action == 'show':
+                condition_func = lambda params: params[controller_param] == trigger_value
+            else:
+                condition_func = lambda params: not params[controller_param] == trigger_value
+            for target_param in target_params:
+                if action == 'enable' or action == 'disable':
+                    self.get_ctrl(target_param).setEnabled(condition_func(params))
+                else:
+                    self.get_ctrl(target_param).setVisible(condition_func(params))
+
+        self.set_param_changed_callback(controller_param, callback)
+        callback(self.get_value()) # 设置时会被调用一次，以自动刷新界面。
 
     def set_value(self, values: Dict[str, Union[int, str, List, float, Tuple]]):
         """

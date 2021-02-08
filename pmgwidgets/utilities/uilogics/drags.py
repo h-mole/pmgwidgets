@@ -1,4 +1,7 @@
 import sys
+
+from PySide2.QtCore import QUrl
+from PySide2.QtGui import QDropEvent
 from qtpy.QtWidgets import QApplication, QTextBrowser
 
 
@@ -21,20 +24,12 @@ class Demo(QTextBrowser):  # 1
         # print('Drag Leave')
         pass
 
-    def dropEvent(self, QDropEvent):  # 6
+    def dropEvent(self, drop_event: QDropEvent):  # 6
         print('Drag Drop')
-        print('text', QDropEvent.mimeData().text())
-        # MacOS
-        txt_path = QDropEvent.mimeData().text().replace('file:///', '/')
-
-        # Linux
-        # txt_path = QDropEvent.mimeData().text().replace('file:///', '/').strip()
-
-        # Windows
-        # txt_path = QDropEvent.mimeData().text().replace('file:///', '')
-        print(txt_path)
-        # with open(txt_path, 'r') as f:
-        #     self.setText(f.read())
+        url: QUrl = None
+        urls = drop_event.mimeData().urls()
+        for url in urls:
+            print(url.toLocalFile())
 
 
 if __name__ == '__main__':

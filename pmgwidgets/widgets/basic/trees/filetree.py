@@ -2,7 +2,7 @@ import os
 from typing import List
 
 from qtpy.QtCore import Qt, QModelIndex, Signal, QLocale, QTranslator, QMimeData, QUrl
-from qtpy.QtGui import QCursor, QKeySequence
+from qtpy.QtGui import QCursor, QKeySequence, QClipboard
 from qtpy.QtWidgets import QTreeView, QFileSystemModel, QMenu, QApplication, QMessageBox, QInputDialog, \
     QLineEdit, QDialog, QVBoxLayout, QDialogButtonBox, QPushButton, QHBoxLayout, QLabel, QShortcut, QCheckBox
 from pmgwidgets.widgets.basic.trees.treecheck import PMCheckTree
@@ -382,6 +382,12 @@ class PMGFilesTreeview(QTreeView):
         self.pasteAction.setEnabled(True)
         self.pasteAction.setData(path)
 
+        data = QMimeData()
+        data.setUrls([QUrl.fromLocalFile(path)])  # 复制到系统剪贴板
+
+        clip = QApplication.clipboard()
+        clip.setMimeData(data)
+
     def on_paste(self):
         """
         Paste file or dir in pasteAction data
@@ -390,32 +396,38 @@ class PMGFilesTreeview(QTreeView):
         from pmgwidgets import copy_paste
         path = self.get_current_file_path()
         target_dir_name = path if os.path.isdir(path) else os.path.dirname(path)
-        source_path = self.pasteAction.data()
-        # File
-        if os.path.isfile(source_path):
-            source_file_name = os.path.basename(source_path)
-            # if exist ,rename to copy_xxx
-            if os.path.isfile(os.path.join(target_dir_name, source_file_name)):
-                target_file_name = "copy_{0}".format(source_file_name)
-            else:
-                target_file_name = source_file_name
-            target_path = os.path.join(target_dir_name, target_file_name)
-        # Directory
-        else:
-            last_dir_name = os.path.split(source_path)[-1]
-            # if exist , rename dir copy_xxxx
-            if os.path.isdir(os.path.join(target_dir_name, last_dir_name)):
-                target_name = "copy_{0}".format(last_dir_name)
-            else:
-                target_name = last_dir_name
-            target_path = os.path.join(target_dir_name, target_name)
+        url: QUrl = None
 
-        copy_succ = copy_paste(source_path, target_path)
-        if not copy_succ:
-            QMessageBox.critical(self, self.tr('Error'),
-                                 self.tr('Copy File or Directory Error.'))
-        else:
-            self.set_item_focus(target_path)
+        mimedata = QApplication.clipboard().mimeData(mode=QClipboard.Clipboard)
+        print(mimedata)
+        urls: List[QUrl] = mimedata.urls()
+        for url in urls:
+            source_path = url.toLocalFile()  # self.pasteAction.data()
+            # File
+            if os.path.isfile(source_path):
+                source_file_name = os.path.basename(source_path)
+                # if exist ,rename to copy_xxx
+                if os.path.isfile(os.path.join(target_dir_name, source_file_name)):
+                    target_file_name = "copy_{0}".format(source_file_name)
+                else:
+                    target_file_name = source_file_name
+                target_path = os.path.join(target_dir_name, target_file_name)
+            # Directory
+            else:
+                last_dir_name = os.path.split(source_path)[-1]
+                # if exist , rename dir copy_xxxx
+                if os.path.isdir(os.path.join(target_dir_name, last_dir_name)):
+                    target_name = "copy_{0}".format(last_dir_name)
+                else:
+                    target_name = last_dir_name
+                target_path = os.path.join(target_dir_name, target_name)
+
+            copy_succ = copy_paste(source_path, target_path)
+            if not copy_succ:
+                QMessageBox.critical(self, self.tr('Error'),
+                                     self.tr('Copy File or Directory Error.'))
+            else:
+                self.set_item_focus(target_path)
 
     def show_ext_filter_selection_dialog(self):
 
@@ -547,6 +559,6 @@ if __name__ == '__main__':
 
     app = QApplication(sys.argv)
 
-    tree = PMGFilesTreeview('/home/hzy/Desktop', None)
+    tree = PMGFilesTreeview(os.path.join(os.path.expanduser('~'), 'Desktop', 'cloud'), None)
     tree.show()
     sys.exit(app.exec_())

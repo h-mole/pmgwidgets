@@ -4,4 +4,4 @@ try:
     import matplotlib
     from .base import *
 except Exception as e:
-    warnings.warn(e)
+    warnings.warn(str(e))
