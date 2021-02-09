@@ -422,10 +422,10 @@ if __name__ == '__main__':
              'legend_face_color': "#00ff00"
              },
         ]
-    sp3 = PMGPanel(views=views3, layout_dir='v')
-    sp3.signal_settings_changed.connect(lambda settings: print('views2-settings', settings))
-    sp3.set_items(views3)
-    sp3.show()
+    # sp3 = PMGPanel(views=views3, layout_dir='v')
+    # sp3.signal_settings_changed.connect(lambda settings: print('views2-settings', settings))
+    # sp3.set_items(views3)
+    # sp3.show()
 
     val = sp.get_value()  # 返回一个字典。初始值为表格的第二列：第四列。
     print(val)

@@ -12,15 +12,50 @@ import sys
 
 import typing
 from qtpy.QtWidgets import QTableView, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, \
-    QMessageBox, QInputDialog, QMenu
+    QMessageBox, QInputDialog, QMenu, QDialog, QDialogButtonBox
 from qtpy.QtCore import QAbstractTableModel, QModelIndex, Signal, QLocale
-from qtpy.QtCore import Qt
-from qtpy.QtGui import QContextMenuEvent
+from qtpy.QtCore import Qt, QPoint
+from qtpy.QtGui import QContextMenuEvent, QKeyEvent
 
 from pmgwidgets.utilities.source.translation import create_translator
 
 if typing.TYPE_CHECKING:
     import numpy as np
+
+
+class InputValueDialog(QDialog):
+    UP = -1
+    DOWN = 1
+    signal_move_cursor = Signal(int)
+    signal_edit_finished = Signal(str)
+
+    def __init__(self, parent):
+        super(InputValueDialog, self).__init__(parent)
+        self.setLayout(QVBoxLayout())
+        self.edit = QLineEdit()
+        self.layout().addWidget(self.edit)
+        self.edit.returnPressed.connect(self.edit_finished)
+        self.button_box = QDialogButtonBox()
+        self.button_box.setStandardButtons(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.layout().addWidget(self.button_box)
+        self.button_box.rejected.connect(self.close)
+        self.button_box.accepted.connect(self.edit_finished)
+
+    def edit_finished(self):
+        self.close()
+        self.signal_edit_finished.emit(self.edit.text())
+
+    def keyPressEvent(self, e: QKeyEvent):
+        if e.key() == Qt.Key_Up:
+            self.close()
+            self.signal_move_cursor.emit(self.UP)
+            e.accept()
+        elif e.key() == Qt.Key_Down:
+            self.close()
+            self.signal_move_cursor.emit(self.DOWN)
+            e.accept()
+
+        super(InputValueDialog, self).keyPressEvent(e)
 
 
 def to_decimal_str(cell_data: 'np.ndarray', decimals: int = 6):
@@ -190,12 +225,15 @@ class TableModelForPandasDataframe(BaseAbstractTableModel):
         data_dim = len(self._data.shape)
         return '.iloc[%s]' % (':,' * data_dim).strip(',')
 
+    # def update_item(self, row, col, value):
+    #     ix = self.index(row, col)
+    #     self.setData(ix, value)
+
     def setData(self, index, value=None, role=Qt.EditRole):
         # 编辑后更新模型中的数据 View中编辑后，View会调用这个方法修改Model中的数据
         if index.isValid() and 0 <= index.row() < self._data.shape[0] and value:
             col = index.column()
             row = index.row()
-
             if 0 <= col < self._data.shape[1]:
                 self.beginResetModel()
                 col_label = self._data.columns[col]
@@ -212,6 +250,10 @@ class PMTableView(QTableView):
     """
     基类，用于显示数据。输入数据类型为列表。
     """
+    INSERT_ROW = 0
+    DELETE_ROW = 1
+    INSERT_COLUMN = 2
+    DELETE_COLUMN = 3
 
     def __init__(self, data=None):
         super().__init__()
@@ -220,9 +262,33 @@ class PMTableView(QTableView):
                               'qt_{0}.qm'.format(QLocale.system().name())))  # translator
         self.data = None
         self.menu = QMenu()
+        self.action_insert_row = self.menu.addAction(self.tr('Insert Row'))
+        self.action_insert_row.triggered.connect(lambda: self.on_change_row_col(self.INSERT_ROW))
+        self.action_delete_row = self.menu.addAction(self.tr('Delete Row'))
+        self.action_insert_col = self.menu.addAction(self.tr('Insert Column'))
+        self.action_insert_col.triggered.connect(lambda: self.on_change_row_col(self.INSERT_COLUMN))
+        self.action_delete_col = self.menu.addAction(self.tr('Delete Column'))
+
         # self.menu.addAction("aaaaaa")
         if data is not None:
             self.set_data(data)
+
+    def on_change_row_col(self, operation: int):
+        pd_data: pd.DataFrame = self.model._data
+        current_index = self.currentIndex()
+        row, column = current_index.row(), current_index.column()
+        if operation == self.INSERT_ROW:
+            prev = pd_data.iloc[:row]
+            lat = pd_data.iloc[row:]
+            self.model._data = pd.concat([prev, pd.DataFrame([[]]), lat])
+
+        elif operation == self.INSERT_COLUMN:
+            col_name, _ = QInputDialog.getText(self, self.tr('Input Column Title'), self.tr('Title'))
+            if _:
+                pd_data.insert(column, col_name, np.nan)
+        else:
+            raise NotImplementedError
+        self.model.layoutChanged.emit()
 
     def set_data(self, data):
         self.data = data
@@ -235,8 +301,10 @@ class PMTableView(QTableView):
             self.model = TableModelForPandasDataframe(data, self.data)
         elif isinstance(data, np.ndarray):
             self.model = TableModelForNumpyArray(data)
+            self.menu.setEnabled(False)
         elif isinstance(data, list):
             self.model = TableModelForList(data)
+            self.menu.setEnabled(True)
         else:
             raise Exception("data type %s is not supported in PMTableView.\
                             \n Supported Types are: numpy.array,list and pandas.DataFrame." % type(data))
@@ -255,7 +323,51 @@ class PMTableView(QTableView):
 
         """
         super().mouseDoubleClickEvent(event)
-        return
+        self.show_edit_dialog(self.currentIndex().row(), self.currentIndex().column())
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        super(PMTableView, self).keyPressEvent(event)
+        if event.key() == Qt.Key_Return:
+            self.show_edit_dialog(self.currentIndex().row(), self.currentIndex().column())
+
+    def show_edit_dialog(self, row, col):
+
+        data = self.model._data
+        if isinstance(data, pd.DataFrame):
+            def on_edited(text):
+
+                try:
+                    result = eval(text)
+                    print(result)
+                    data.iloc[row, col] = result
+                except:
+                    import traceback
+                    QMessageBox.warning(self, self.tr('Warning'), self.tr(traceback.format_exc()))
+                    return
+
+            def on_move_current_cell(direction: int):
+                target_row = row + direction
+                print(target_row, self.model.rowCount(col))
+                if 0 <= target_row < self.model.rowCount(col):
+                    self.setCurrentIndex(self.model.index(target_row, col))
+                    self.show_edit_dialog(target_row, col)
+
+            from pandas import Timestamp, Period, Interval
+            original_data = data.iloc[row, col]
+            print(original_data)
+            print(self.columnViewportPosition(col), self.rowViewportPosition(row))
+
+            dlg = InputValueDialog(self)
+            dlg.setWindowTitle(self.tr('Input New Value'))
+            dlg.edit.setText(repr(original_data))
+            dlg.signal_edit_finished.connect(on_edited)
+            dlg.signal_move_cursor.connect(on_move_current_cell)
+            global_pos = self.mapToGlobal(
+                QPoint(self.columnViewportPosition(col) + 50, self.rowViewportPosition(row) + 50))
+            dlg.setGeometry(global_pos.x(), global_pos.y(), dlg.width(), dlg.height())
+            dlg.exec_()
+            # QInputDialog.getText(self, self.tr('Input New Value'), '', QLineEdit.Normal,
+            # text=repr(original_data))
 
     def contextMenuEvent(self, event: QContextMenuEvent):
         print(event)
@@ -335,12 +447,14 @@ class PMGTableViewer(QWidget):
 if __name__ == '__main__':
     import pandas as pd
     import numpy as np
+    import datetime
 
     app = QApplication(sys.argv)
     table = PMGTableViewer(table_view=PMTableView())
 
     data = np.random.random((5, 3, 3, 3))
-    data = pd.DataFrame([['aaa', 'bbb'], ['rrr', 'aaaaaa']])
+    data = pd.DataFrame([['aaa', 'bbb', 0.1, 0.0001, True, pd.Timestamp(datetime.datetime(2012, 5, 1))],
+                         ['rrr', 'aaaaaa', False, pd.Timestamp(datetime.datetime(2012, 5, 1))]])
     table.show()
 
     table.set_data(data)

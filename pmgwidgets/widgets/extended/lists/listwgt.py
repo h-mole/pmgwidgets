@@ -1,12 +1,14 @@
 from typing import List, Callable
 
-from qtpy.QtCore import Qt
-from qtpy.QtWidgets import QLabel, QHBoxLayout, QListWidget, QVBoxLayout, QPushButton
+from PySide2.QtGui import QStandardItemModel, QStandardItem, QMouseEvent
+from PySide2.QtWidgets import QListWidgetItem, QCompleter
+from qtpy.QtCore import Qt, QStringListModel
+from qtpy.QtWidgets import QLabel, QHBoxLayout, QListWidget, QVBoxLayout, QPushButton, QLineEdit
 from pmgwidgets.widgets.extended.base.baseextendedwidget import BaseExtendedWidget
 
 
 class PMGListCtrl(BaseExtendedWidget):
-    def __init__(self, layout_dir: str, title: str, initial_value: List[List[str]], new_id_func: Callable=None):
+    def __init__(self, layout_dir: str, title: str, initial_value: List[List[str]], new_id_func: Callable = None):
         super().__init__(layout_dir)
         self.choices = []
         self.text_list = []
@@ -15,6 +17,8 @@ class PMGListCtrl(BaseExtendedWidget):
         self.central_layout.addWidget(lab_title)
         self.on_check_callback = None
         self.list_widget = QListWidget()
+        self.list_widget.mouseDoubleClickEvent = self.on_listwidget_double_cicked
+
         self.set_value(initial_value)
         layout_tools = QVBoxLayout()
         self.button_add_item = QPushButton('+')
@@ -31,6 +35,24 @@ class PMGListCtrl(BaseExtendedWidget):
         self.data = initial_value
         self.new_id_func = new_id_func
 
+        self.text_edit = QLineEdit(parent=self.list_widget)
+        self.text_edit.setWindowFlags(self.text_edit.windowFlags() | Qt.Dialog | Qt.FramelessWindowHint)
+        self.text_edit.hide()
+        self.completer = QCompleter()
+        self.text_edit.setCompleter(self.completer)
+        self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
+
+    def set_completions(self, completions: List[str]):
+        """
+        设置补全内容
+        Args:
+            completions:
+
+        Returns:
+
+        """
+        self.completer.setModel(QStringListModel(completions))
+
     def new_id(self):
         if callable(self.new_id_func):
             return self.new_id_func()
@@ -38,26 +60,40 @@ class PMGListCtrl(BaseExtendedWidget):
             return None
 
     def add_row(self):
+        self.data = self.get_value()
         self.data[0].append(self.new_id())
         self.data[1].append('Unnamed')
-        self.set_value(self.data)
+        self.list_widget.addItem(QListWidgetItem('Unnamed'))
 
     def delete_row(self):
         index = self.list_widget.currentIndex().row()
         self.data[0].pop(index)
         self.data[1].pop(index)
-        self.set_value(self.data)
+        self.list_widget.takeItem(index)
 
-    def on_listwidget_double_cicked(self):
-        print('edit')
-        item = self.list_widget.currentItem()
-        self.list_widget.editItem(item)
+    def on_listwidget_double_cicked(self, evt: QMouseEvent):
+        print('edit', evt)
+        pos = evt.globalPos()
+        current_item: QListWidgetItem = self.list_widget.currentItem()
+
+        def set_value():
+            current_item.setText(self.text_edit.text())
+            self.text_edit.hide()
+            self.text_edit.returnPressed.disconnect(set_value)
+
+        item: QListWidgetItem = self.list_widget.currentItem()
+
+        self.text_edit.setGeometry(pos.x(), pos.y(), 200, 20)
+        self.text_edit.returnPressed.connect(set_value)
+        self.text_edit.show()
+        # self.list_widget.editItem(item)
 
     def get_value(self):
         text = []
         for i in range(self.list_widget.count()):
             text.append(self.list_widget.item(i).text())
         self.data[1] = text
+        assert len(self.data[1]) == len(self.data[0]),repr(self.data)
         return self.data
 
     def set_value(self, data: List[List[str]]):
@@ -65,5 +101,4 @@ class PMGListCtrl(BaseExtendedWidget):
         self.list_widget.addItems(data[1])
         self.data = data
         for index in range(self.list_widget.count()):
-            item = self.list_widget.item(index)
-            item.setFlags(item.flags() | Qt.ItemIsEditable)
+            item: QListWidgetItem = self.list_widget.item(index)
