@@ -12,10 +12,10 @@ import sys
 
 import typing
 from qtpy.QtWidgets import QTableView, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, \
-    QMessageBox, QInputDialog, QMenu, QDialog, QDialogButtonBox
+    QMessageBox, QInputDialog, QMenu, QDialog, QDialogButtonBox, QShortcut
 from qtpy.QtCore import QAbstractTableModel, QModelIndex, Signal, QLocale
 from qtpy.QtCore import Qt, QPoint
-from qtpy.QtGui import QContextMenuEvent, QKeyEvent
+from qtpy.QtGui import QContextMenuEvent, QKeyEvent, QKeySequence
 
 from pmgwidgets.utilities.source.translation import create_translator
 
@@ -225,10 +225,6 @@ class TableModelForPandasDataframe(BaseAbstractTableModel):
         data_dim = len(self._data.shape)
         return '.iloc[%s]' % (':,' * data_dim).strip(',')
 
-    # def update_item(self, row, col, value):
-    #     ix = self.index(row, col)
-    #     self.setData(ix, value)
-
     def setData(self, index, value=None, role=Qt.EditRole):
         # 编辑后更新模型中的数据 View中编辑后，View会调用这个方法修改Model中的数据
         if index.isValid() and 0 <= index.row() < self._data.shape[0] and value:
@@ -255,6 +251,8 @@ class PMTableView(QTableView):
     INSERT_COLUMN = 2
     DELETE_COLUMN = 3
 
+    signal_need_save = Signal(bool)
+
     def __init__(self, data=None):
         super().__init__()
         self.translator = create_translator(
@@ -274,6 +272,8 @@ class PMTableView(QTableView):
             self.set_data(data)
 
     def on_change_row_col(self, operation: int):
+        import pandas as pd
+        import numpy as np
         pd_data: pd.DataFrame = self.model._data
         current_index = self.currentIndex()
         row, column = current_index.row(), current_index.column()
@@ -289,10 +289,14 @@ class PMTableView(QTableView):
         else:
             raise NotImplementedError
         self.model.layoutChanged.emit()
+        self.signal_need_save.emit(True)
 
     def set_data(self, data):
         self.data = data
         self.show_data(data)
+
+    def get_data(self):
+        return self.model._data
 
     def show_data(self, data):
         import pandas as pd
@@ -331,7 +335,8 @@ class PMTableView(QTableView):
             self.show_edit_dialog(self.currentIndex().row(), self.currentIndex().column())
 
     def show_edit_dialog(self, row, col):
-
+        import pandas as pd
+        from pandas import Timestamp, Period, Interval
         data = self.model._data
         if isinstance(data, pd.DataFrame):
             def on_edited(text):
@@ -340,6 +345,7 @@ class PMTableView(QTableView):
                     result = eval(text)
                     print(result)
                     data.iloc[row, col] = result
+                    self.signal_need_save.emit(True)
                 except:
                     import traceback
                     QMessageBox.warning(self, self.tr('Warning'), self.tr(traceback.format_exc()))
@@ -352,7 +358,6 @@ class PMTableView(QTableView):
                     self.setCurrentIndex(self.model.index(target_row, col))
                     self.show_edit_dialog(target_row, col)
 
-            from pandas import Timestamp, Period, Interval
             original_data = data.iloc[row, col]
             print(original_data)
             print(self.columnViewportPosition(col), self.rowViewportPosition(row))
@@ -380,6 +385,7 @@ class PMGTableViewer(QWidget):
     有切片和保存两个按钮。点击Slice的时候可以切片查看，点击Save保存。
     """
     data_modified_signal = Signal()
+    signal_need_save = Signal(bool)
 
     def __init__(self, parent=None, table_view: 'PMTableView' = None):
         super().__init__(parent)
@@ -391,14 +397,34 @@ class PMGTableViewer(QWidget):
         self.slice_input = QLineEdit()
 
         self.slice_refresh_button = QPushButton(self.tr('Slice'))
-        # self.save_change_button = QPushButton(self.tr('Save'))
-        # self.save_change_button.clicked.connect(self.data_modified_signal.emit)
+        self.save_change_button = QPushButton(self.tr('Save'))
+        self.save_change_button.clicked.connect(self.on_save)
         self.slice_refresh_button.clicked.connect(self.slice)
+
+        self.table_view.signal_need_save.connect(self.signal_need_save.emit)
+        self.signal_need_save.connect(self.on_signal_need_save)
         self.top_layout.addWidget(self.slice_input)
         self.top_layout.addWidget(self.slice_refresh_button)
-        # self.top_layout.addWidget(self.save_change_button)
+        self.top_layout.addWidget(self.save_change_button)
         if table_view is not None:
             self.layout().addWidget(self.table_view)
+
+        self.shortcut_save = QShortcut(QKeySequence.Save, self.table_view, context=Qt.WidgetShortcut)
+        self.shortcut_save.activated.connect(self.on_save)
+
+    def on_signal_need_save(self, need_save: str):
+        title = self.windowTitle()
+        print(title)
+        if need_save:
+            if not title.startswith('*'):
+                self.setWindowTitle('*' + title)
+        else:
+            if title.startswith('*'):
+                self.setWindowTitle(title.strip('*'))
+
+    def on_save(self):
+        self.signal_need_save.emit(False)
+        self.data_modified_signal.emit()
 
     def set_data(self, data: typing.Any) -> None:
         """
@@ -416,7 +442,7 @@ class PMGTableViewer(QWidget):
             self.slice()
 
     def get_data(self):
-        return self.table_view.data
+        return self.table_view.model._data
 
     def slice(self):
         """
@@ -458,5 +484,6 @@ if __name__ == '__main__':
     table.show()
 
     table.set_data(data)
+    table.setWindowTitle('table')
 
     app.exec_()
