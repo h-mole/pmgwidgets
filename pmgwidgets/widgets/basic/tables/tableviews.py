@@ -11,8 +11,11 @@ import os
 import sys
 
 import typing
+
+from PySide2.QtGui import QColor
+from PySide2.QtWidgets import QSpacerItem
 from qtpy.QtWidgets import QTableView, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, \
-    QMessageBox, QInputDialog, QMenu, QDialog, QDialogButtonBox, QShortcut
+    QMessageBox, QInputDialog, QMenu, QDialog, QDialogButtonBox, QShortcut, QSizePolicy
 from qtpy.QtCore import QAbstractTableModel, QModelIndex, Signal, QLocale
 from qtpy.QtCore import Qt, QPoint
 from qtpy.QtGui import QContextMenuEvent, QKeyEvent, QKeySequence
@@ -193,14 +196,56 @@ class TableModelForPandasDataframe(BaseAbstractTableModel):
     """
 
     def __init__(self, data, original_data):
+        # 颜色约定：透明度统一为100
+        # 数值型：精度或长度用蓝色表示，位数越多蓝色越深。位数计算方式为（16*字节）取10.对于64位，为128.
+        #        浮点数加50单位绿色，整数不加。
+        #       复数的话，加100单位红色。
+        #
+        # 布尔型：绿色+蓝色，200+200
+        # 时间型：绿色，200。
+        # 字符串型：红色+绿色，200+200
+        # 其他类型：灰色
+        # NaN\NaT为灰色
+        #
         super(TableModelForPandasDataframe, self).__init__()
         self._data: 'pd.DataFrame' = data
         self.original_data = original_data
+        self.colors = {'int': QColor(0, 0, 128, 100), 'bool': QColor(0, 200, 200, 100),
+                       'float': QColor(0, 50, 128, 100), 'str': QColor(200, 200, 0, 100),
+                       'timestamp': QColor(0, 200, 0, 100),
+                       'complex': QColor(100, 0, 128, 100)
+                       }
+
+    def get_color(self, data):
+        import numpy as np
+        import pandas as pd
+        if isinstance(data, (np.bool_, bool)):
+            return self.colors['bool']
+        elif isinstance(data, (np.integer, int)):
+            return self.colors['int']
+        elif isinstance(data, (np.inexact, float)):
+            if isinstance(data, np.complex_):
+                return self.colors['complex']
+            return self.colors['float']
+        elif isinstance(data, (str)):
+            return self.colors['str']
+        elif isinstance(data, (pd.Timestamp)):
+            return self.colors['timestamp']
+        elif data == np.nan:
+            return QColor(0, 0, 50, 100)
+        elif data == pd.NaT:
+            return QColor(0, 50, 0, 100)
+
+        return QColor(0, 0, 0, 100)
 
     def data(self, index, role):
         if role == Qt.DisplayRole:
             value = self._data.iloc[index.row(), index.column()]
             return dataformat(value)
+        if role == Qt.BackgroundRole:
+            data = self._data.iloc[index.row(), index.column()]
+            print(type(data))
+            return self.get_color(data)
 
     def rowCount(self, index):
         return self._data.shape[0]
@@ -340,11 +385,10 @@ class PMTableView(QTableView):
 
     def show_edit_dialog(self, row, col):
         import pandas as pd
-        from pandas import Timestamp, Period, Interval
         data = self.model._data
         if isinstance(data, pd.DataFrame):
             def on_edited(text):
-
+                from pandas import Timestamp, Period, Interval
                 try:
                     result = eval(text)
                     print(result)
@@ -379,8 +423,9 @@ class PMTableView(QTableView):
             # text=repr(original_data))
 
     def contextMenuEvent(self, event: QContextMenuEvent):
-        print(event)
-        self.menu.exec_(event.globalPos())
+        import pandas as pd
+        if isinstance(self.model._data, pd.DataFrame):
+            self.menu.exec_(event.globalPos())
 
 
 class PMGTableViewer(QWidget):
@@ -405,10 +450,14 @@ class PMGTableViewer(QWidget):
         self.save_change_button.clicked.connect(self.on_save)
         self.slice_refresh_button.clicked.connect(self.slice)
 
+        self.slice_input.hide()
+        self.slice_refresh_button.hide()
+
         self.table_view.signal_need_save.connect(self.signal_need_save.emit)
         self.signal_need_save.connect(self.on_signal_need_save)
         self.top_layout.addWidget(self.slice_input)
         self.top_layout.addWidget(self.slice_refresh_button)
+        self.top_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum))
         self.top_layout.addWidget(self.save_change_button)
         if table_view is not None:
             self.layout().addWidget(self.table_view)
@@ -480,14 +529,25 @@ if __name__ == '__main__':
     import datetime
 
     app = QApplication(sys.argv)
+
     table = PMGTableViewer(table_view=PMTableView())
 
     data = np.random.random((5, 3, 3, 3))
     data = pd.DataFrame([['aaa', 'bbb', 0.1, 0.0001, True, pd.Timestamp(datetime.datetime(2012, 5, 1))],
-                         ['rrr', 'aaaaaa', False, pd.Timestamp(datetime.datetime(2012, 5, 1))]])
+                         ['rrr', 'aaaaaa', False, False, True, pd.Timestamp(datetime.datetime(2012, 5, 1))],
+                         [123]]
+                        )
+    print(data.iloc[2, 5])
+
     table.show()
 
     table.set_data(data)
-    table.setWindowTitle('table')
+    table.setWindowTitle('Pandas数据集 显示多种数据')
 
+    data2 = pd.DataFrame(np.array([1 + 1j, 1 + 2j, 1 + 2.0j]))
+    table2 = PMGTableViewer(table_view=PMTableView())
+    table2.show()
+    table2.setWindowTitle('Pandas数据集复数显示')
+    table2.set_data(data2)
+    print(data.dtypes)
     app.exec_()
