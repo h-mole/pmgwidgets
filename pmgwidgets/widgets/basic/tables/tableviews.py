@@ -263,10 +263,11 @@ class PMTableView(QTableView):
         self.action_insert_row = self.menu.addAction(self.tr('Insert Row'))
         self.action_insert_row.triggered.connect(lambda: self.on_change_row_col(self.INSERT_ROW))
         self.action_delete_row = self.menu.addAction(self.tr('Delete Row'))
+        self.action_delete_row.triggered.connect(lambda: self.on_change_row_col(self.DELETE_ROW))
         self.action_insert_col = self.menu.addAction(self.tr('Insert Column'))
         self.action_insert_col.triggered.connect(lambda: self.on_change_row_col(self.INSERT_COLUMN))
         self.action_delete_col = self.menu.addAction(self.tr('Delete Column'))
-
+        self.action_delete_col.triggered.connect(lambda: self.on_change_row_col(self.DELETE_COLUMN))
         # self.menu.addAction("aaaaaa")
         if data is not None:
             self.set_data(data)
@@ -281,11 +282,14 @@ class PMTableView(QTableView):
             prev = pd_data.iloc[:row]
             lat = pd_data.iloc[row:]
             self.model._data = pd.concat([prev, pd.DataFrame([[]]), lat])
-
+        elif operation == self.DELETE_ROW:
+            self.model._data = pd_data.drop(index=[row], axis=1)
         elif operation == self.INSERT_COLUMN:
             col_name, _ = QInputDialog.getText(self, self.tr('Input Column Title'), self.tr('Title'))
             if _:
                 pd_data.insert(column, col_name, np.nan)
+        elif operation == self.DELETE_COLUMN:
+            self.model._data = pd_data.drop(columns=[column], axis=0)
         else:
             raise NotImplementedError
         self.model.layoutChanged.emit()
