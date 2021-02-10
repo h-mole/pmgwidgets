@@ -22,6 +22,7 @@ from qtpy.QtGui import QContextMenuEvent, QKeyEvent, QKeySequence
 
 from pmgwidgets.utilities.source.translation import create_translator
 from pmgwidgets.widgets.basic.dialogs.textdialog import TextShowDialog
+
 if typing.TYPE_CHECKING:
     import numpy as np
 
@@ -233,7 +234,6 @@ class TableModelForPandasDataframe(BaseAbstractTableModel):
             return dataformat(value)
         if role == Qt.BackgroundRole:
             data = self._data.iloc[index.row(), index.column()]
-            print(type(data))
             return self.get_color(data)
 
     def rowCount(self, index):
@@ -307,6 +307,14 @@ class PMTableView(QTableView):
             self.set_data(data)
 
     def on_change_row_col(self, operation: int):
+        """
+        The slot for editting row or columns
+        Args:
+            operation:
+
+        Returns:
+
+        """
         import pandas as pd
         import numpy as np
         pd_data: pd.DataFrame = self.model._data
@@ -380,7 +388,6 @@ class PMTableView(QTableView):
                 from pandas import Timestamp, Period, Interval
                 try:
                     result = eval(text)
-                    print(result)
                     data.iloc[row, col] = result
                     self.signal_need_save.emit(True)
                 except:
@@ -390,14 +397,11 @@ class PMTableView(QTableView):
 
             def on_move_current_cell(direction: int):
                 target_row = row + direction
-                print(target_row, self.model.rowCount(col))
                 if 0 <= target_row < self.model.rowCount(col):
                     self.setCurrentIndex(self.model.index(target_row, col))
                     self.show_edit_dialog(target_row, col)
 
             original_data = data.iloc[row, col]
-            print(original_data)
-            print(self.columnViewportPosition(col), self.rowViewportPosition(row))
 
             dlg = InputValueDialog(self)
             dlg.setWindowTitle(self.tr('Input New Value'))
@@ -415,6 +419,14 @@ class PMTableView(QTableView):
         import pandas as pd
         if isinstance(self.model._data, pd.DataFrame):
             self.menu.exec_(event.globalPos())
+
+    def on_goto_index(self, row: int, col: int = 0):
+        import pandas as pd
+        import numpy as np
+
+        if isinstance(self.data, (pd.DataFrame, np.ndarray)):
+            assert 0 <= row <= self.model.rowCount(None)
+        self.setCurrentIndex(table.table_view.model.index(row, col))
 
 
 class PMGTableViewer(QWidget):
@@ -436,34 +448,42 @@ class PMGTableViewer(QWidget):
         self.help_button = QPushButton(self.tr('Help'))
         self.slice_refresh_button = QPushButton(self.tr('Slice'))
         self.save_change_button = QPushButton(self.tr('Save'))
+        self.goto_cell_button = QPushButton(self.tr('Go To Cell'))
+
         self.save_change_button.clicked.connect(self.on_save)
         self.slice_refresh_button.clicked.connect(self.slice)
         self.help_button.clicked.connect(self.on_help)
+        self.goto_cell_button.clicked.connect(self.on_goto_cell)
         self.slice_input.hide()
         self.slice_refresh_button.hide()
 
         self.table_view.signal_need_save.connect(self.signal_need_save.emit)
         self.signal_need_save.connect(self.on_signal_need_save)
+        self.top_layout.addWidget(self.goto_cell_button)
+        self.top_layout.addWidget(self.save_change_button)
         self.top_layout.addWidget(self.help_button)
         self.top_layout.addWidget(self.slice_input)
         self.top_layout.addWidget(self.slice_refresh_button)
         self.top_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        self.top_layout.addWidget(self.save_change_button)
+
         if table_view is not None:
             self.layout().addWidget(self.table_view)
 
         self.shortcut_save = QShortcut(QKeySequence.Save, self.table_view, context=Qt.WidgetShortcut)
         self.shortcut_save.activated.connect(self.on_save)
 
+        self.shortcut_goto = QShortcut(QKeySequence('Ctrl+G'), self.table_view, context=Qt.WidgetShortcut)
+        self.shortcut_goto.activated.connect(self.on_goto_cell)
+
     def on_help(self):
-        dlg = TextShowDialog()
-        with open(os.path.join(os.path.dirname(__file__),'help','help.md'),'r',encoding='utf8',errors='replace') as f:
+        dlg = TextShowDialog(title=self.tr('Help'))
+        with open(os.path.join(os.path.dirname(__file__), 'help', 'help.md'), 'r', encoding='utf8',
+                  errors='replace') as f:
             dlg.set_markdown(f.read())
         dlg.exec_()
 
     def on_signal_need_save(self, need_save: str):
         title = self.windowTitle()
-        print(title)
         if need_save:
             if not title.startswith('*'):
                 self.setWindowTitle('*' + title)
@@ -518,6 +538,20 @@ class PMGTableViewer(QWidget):
     def closeEvent(self, a0: 'QCloseEvent') -> None:
         super().closeEvent(a0)
 
+    def on_goto_cell(self):
+        if isinstance(self.table_view.model, (TableModelForPandasDataframe, TableModelForNumpyArray)):
+            min_row, max_row = 1, self.table_view.model.rowCount(None)
+            current_row = self.table_view.currentIndex().row() + 1
+            current_col = self.table_view.currentIndex().column() + 1
+            row, _ = QInputDialog.getInt(self, self.tr('Input Row'),
+                                         self.tr('Target Row No.:({min}~{max})').format(min=min_row, max=max_row),
+                                         current_row,
+                                         min_row, max_row, step=1)
+            if _:
+                self.table_view.on_goto_index(row - 1, 0)
+        else:
+            raise NotImplementedError
+
 
 if __name__ == '__main__':
     import pandas as pd
@@ -531,13 +565,14 @@ if __name__ == '__main__':
     data = np.random.random((5, 3, 3, 3))
     data = pd.DataFrame([['aaa', 'bbb', 0.1, 0.0001, True, pd.Timestamp(datetime.datetime(2012, 5, 1))],
                          ['rrr', 'aaaaaa', False, False, True, pd.Timestamp(datetime.datetime(2012, 5, 1))],
-                         [123]]
+                         ] * 1000
                         )
     print(data.iloc[2, 5])
 
     table.show()
 
     table.set_data(data)
+
     table.setWindowTitle('Pandas数据集 显示多种数据')
 
     data2 = pd.DataFrame(np.array([1 + 1j, 1 + 2j, 1 + 2.0j]))

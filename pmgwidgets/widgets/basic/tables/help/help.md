@@ -1,5 +1,13 @@
-# 帮助 Help
-## 高亮颜色说明
+# 数据查看与编辑 帮助 Help
+## 操作说明
+### 跳转到行： 
+
+点击“跳转到行”按钮，或者快捷键`Ctrl+G`均可。
+
+但是注意，很多时候pandas的Index是从0开始的。因此行的索引为399时，实际的行号应该是400.
+
+
+# 高亮颜色说明
 ### Pandas
 Pandas的数据类型是相当复杂的，不同的数据类型之间常常发生混淆。
 
@@ -28,6 +36,7 @@ Pandas的数据类型是相当复杂的，不同的数据类型之间常常发�
 <font style="background: rgba(200,200,0,0.4)">John Strauss</font>  
 - 其他类型：灰色
     - <font style="background: rgba(0,0,0,0.3125)">None</font>  
+    - <font style="background: rgba(0,0,0,0.3125)">person</font>(自定义数据类型)  
     - <font style="background: rgba(0,0,0,0.3125)">NaN</font>  
     - <font style="background: rgba(0,0,0,0.3125)">NaT</font>  
 
