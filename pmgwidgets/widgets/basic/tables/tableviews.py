@@ -21,7 +21,7 @@ from qtpy.QtCore import Qt, QPoint
 from qtpy.QtGui import QContextMenuEvent, QKeyEvent, QKeySequence
 
 from pmgwidgets.utilities.source.translation import create_translator
-
+from pmgwidgets.widgets.basic.dialogs.textdialog import TextShowDialog
 if typing.TYPE_CHECKING:
     import numpy as np
 
@@ -196,22 +196,11 @@ class TableModelForPandasDataframe(BaseAbstractTableModel):
     """
 
     def __init__(self, data, original_data):
-        # 颜色约定：透明度统一为100
-        # 数值型：精度或长度用蓝色表示，位数越多蓝色越深。位数计算方式为（16*字节）取10.对于64位，为128.
-        #        浮点数加50单位绿色，整数不加。
-        #       复数的话，加100单位红色。
-        #
-        # 布尔型：绿色+蓝色，200+200
-        # 时间型：绿色，200。
-        # 字符串型：红色+绿色，200+200
-        # 其他类型：灰色
-        # NaN\NaT为灰色
-        #
         super(TableModelForPandasDataframe, self).__init__()
         self._data: 'pd.DataFrame' = data
         self.original_data = original_data
         self.colors = {'int': QColor(0, 0, 128, 100), 'bool': QColor(0, 200, 200, 100),
-                       'float': QColor(0, 50, 128, 100), 'str': QColor(200, 200, 0, 100),
+                       'float': QColor(0, 64, 128, 100), 'str': QColor(200, 200, 0, 100),
                        'timestamp': QColor(0, 200, 0, 100),
                        'complex': QColor(100, 0, 128, 100)
                        }
@@ -236,7 +225,7 @@ class TableModelForPandasDataframe(BaseAbstractTableModel):
         elif data == pd.NaT:
             return QColor(0, 50, 0, 100)
 
-        return QColor(0, 0, 0, 100)
+        return QColor(0, 0, 0, 80)
 
     def data(self, index, role):
         if role == Qt.DisplayRole:
@@ -444,17 +433,18 @@ class PMGTableViewer(QWidget):
         self.layout().addLayout(self.top_layout)
         self.table_view = table_view
         self.slice_input = QLineEdit()
-
+        self.help_button = QPushButton(self.tr('Help'))
         self.slice_refresh_button = QPushButton(self.tr('Slice'))
         self.save_change_button = QPushButton(self.tr('Save'))
         self.save_change_button.clicked.connect(self.on_save)
         self.slice_refresh_button.clicked.connect(self.slice)
-
+        self.help_button.clicked.connect(self.on_help)
         self.slice_input.hide()
         self.slice_refresh_button.hide()
 
         self.table_view.signal_need_save.connect(self.signal_need_save.emit)
         self.signal_need_save.connect(self.on_signal_need_save)
+        self.top_layout.addWidget(self.help_button)
         self.top_layout.addWidget(self.slice_input)
         self.top_layout.addWidget(self.slice_refresh_button)
         self.top_layout.addItem(QSpacerItem(0, 0, QSizePolicy.Expanding, QSizePolicy.Minimum))
@@ -464,6 +454,12 @@ class PMGTableViewer(QWidget):
 
         self.shortcut_save = QShortcut(QKeySequence.Save, self.table_view, context=Qt.WidgetShortcut)
         self.shortcut_save.activated.connect(self.on_save)
+
+    def on_help(self):
+        dlg = TextShowDialog()
+        with open(os.path.join(os.path.dirname(__file__),'help','help.md'),'r',encoding='utf8',errors='replace') as f:
+            dlg.set_markdown(f.read())
+        dlg.exec_()
 
     def on_signal_need_save(self, need_save: str):
         title = self.windowTitle()

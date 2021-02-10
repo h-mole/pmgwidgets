@@ -7,3 +7,4 @@ from .plots import *
 from .tables import *
 from .texts import *
 from .trees import *
+from .dialogs import *
