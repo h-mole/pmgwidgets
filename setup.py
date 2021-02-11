@@ -11,7 +11,7 @@ for name in ['dist', 'build']:
         shutil.rmtree(dist_path)
 setup(
     name='pmgwidgets',
-    version='0.9.3',
+    version='0.9.4',
     description=(
             'A Widget Collection for PyMiner Project. Especially for creating forms by simple jsons.\n' +
             'This package is developed by PyMiner developing team.'

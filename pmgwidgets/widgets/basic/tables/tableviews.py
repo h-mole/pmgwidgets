@@ -16,7 +16,7 @@ from PySide2.QtGui import QColor
 from PySide2.QtWidgets import QSpacerItem
 from qtpy.QtWidgets import QTableView, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, \
     QMessageBox, QInputDialog, QMenu, QDialog, QDialogButtonBox, QShortcut, QSizePolicy
-from qtpy.QtCore import QAbstractTableModel, QModelIndex, Signal, QLocale
+from qtpy.QtCore import QAbstractTableModel, QModelIndex, Signal, QLocale, QCoreApplication
 from qtpy.QtCore import Qt, QPoint
 from qtpy.QtGui import QContextMenuEvent, QKeyEvent, QKeySequence
 
@@ -294,13 +294,13 @@ class PMTableView(QTableView):
                               'qt_{0}.qm'.format(QLocale.system().name())))  # translator
         self.data = None
         self.menu = QMenu()
-        self.action_insert_row = self.menu.addAction(self.tr('Insert Row'))
+        self.action_insert_row = self.menu.addAction(QCoreApplication.translate('PMTableView','Insert Row'))
         self.action_insert_row.triggered.connect(lambda: self.on_change_row_col(self.INSERT_ROW))
-        self.action_delete_row = self.menu.addAction(self.tr('Delete Row'))
+        self.action_delete_row = self.menu.addAction(QCoreApplication.translate('PMTableView','Delete Row'))
         self.action_delete_row.triggered.connect(lambda: self.on_change_row_col(self.DELETE_ROW))
-        self.action_insert_col = self.menu.addAction(self.tr('Insert Column'))
+        self.action_insert_col = self.menu.addAction(QCoreApplication.translate('PMTableView','Insert Column'))
         self.action_insert_col.triggered.connect(lambda: self.on_change_row_col(self.INSERT_COLUMN))
-        self.action_delete_col = self.menu.addAction(self.tr('Delete Column'))
+        self.action_delete_col = self.menu.addAction(QCoreApplication.translate('PMTableView','Delete Column'))
         self.action_delete_col.triggered.connect(lambda: self.on_change_row_col(self.DELETE_COLUMN))
         # self.menu.addAction("aaaaaa")
         if data is not None:
@@ -327,7 +327,7 @@ class PMTableView(QTableView):
         elif operation == self.DELETE_ROW:
             self.model._data = pd_data.drop(index=[row], axis=1)
         elif operation == self.INSERT_COLUMN:
-            col_name, _ = QInputDialog.getText(self, self.tr('Input Column Title'), self.tr('Title'))
+            col_name, _ = QInputDialog.getText(self, QCoreApplication.translate('PMTableView','Input Column Title'), QCoreApplication.translate('PMTableView','Title'))
             if _:
                 pd_data.insert(column, col_name, np.nan)
         elif operation == self.DELETE_COLUMN:
@@ -392,7 +392,8 @@ class PMTableView(QTableView):
                     self.signal_need_save.emit(True)
                 except:
                     import traceback
-                    QMessageBox.warning(self, self.tr('Warning'), self.tr(traceback.format_exc()))
+                    QMessageBox.warning(self, QCoreApplication.translate('PMTableView','Warning'),
+                                        traceback.format_exc())
                     return
 
             def on_move_current_cell(direction: int):
@@ -404,7 +405,7 @@ class PMTableView(QTableView):
             original_data = data.iloc[row, col]
 
             dlg = InputValueDialog(self)
-            dlg.setWindowTitle(self.tr('Input New Value'))
+            dlg.setWindowTitle(QCoreApplication.translate('PMTableView','Input New Value'))
             dlg.edit.setText(repr(original_data))
             dlg.signal_edit_finished.connect(on_edited)
             dlg.signal_move_cursor.connect(on_move_current_cell)
@@ -412,7 +413,7 @@ class PMTableView(QTableView):
                 QPoint(self.columnViewportPosition(col) + 50, self.rowViewportPosition(row) + 50))
             dlg.setGeometry(global_pos.x(), global_pos.y(), dlg.width(), dlg.height())
             dlg.exec_()
-            # QInputDialog.getText(self, self.tr('Input New Value'), '', QLineEdit.Normal,
+            # QInputDialog.getText(self, QCoreApplication.translate('PMTableView','Input New Value'), '', QLineEdit.Normal,
             # text=repr(original_data))
 
     def contextMenuEvent(self, event: QContextMenuEvent):
@@ -426,7 +427,7 @@ class PMTableView(QTableView):
 
         if isinstance(self.data, (pd.DataFrame, np.ndarray)):
             assert 0 <= row <= self.model.rowCount(None)
-        self.setCurrentIndex(table.table_view.model.index(row, col))
+        self.setCurrentIndex(self.model.index(row, col))
 
 
 class PMGTableViewer(QWidget):
@@ -445,10 +446,10 @@ class PMGTableViewer(QWidget):
         self.layout().addLayout(self.top_layout)
         self.table_view = table_view
         self.slice_input = QLineEdit()
-        self.help_button = QPushButton(self.tr('Help'))
-        self.slice_refresh_button = QPushButton(self.tr('Slice'))
-        self.save_change_button = QPushButton(self.tr('Save'))
-        self.goto_cell_button = QPushButton(self.tr('Go To Cell'))
+        self.help_button = QPushButton(QCoreApplication.translate('PMGTableViewer','Help'))
+        self.slice_refresh_button = QPushButton(QCoreApplication.translate('PMGTableViewer','Slice'))
+        self.save_change_button = QPushButton(QCoreApplication.translate('PMGTableViewer','Save'))
+        self.goto_cell_button = QPushButton(QCoreApplication.translate('PMGTableViewer','Go To Cell'))
 
         self.save_change_button.clicked.connect(self.on_save)
         self.slice_refresh_button.clicked.connect(self.slice)
@@ -476,7 +477,7 @@ class PMGTableViewer(QWidget):
         self.shortcut_goto.activated.connect(self.on_goto_cell)
 
     def on_help(self):
-        dlg = TextShowDialog(title=self.tr('Help'))
+        dlg = TextShowDialog(title=QCoreApplication.translate('PMGTableViewer','Help'))
         with open(os.path.join(os.path.dirname(__file__), 'help', 'help.md'), 'r', encoding='utf8',
                   errors='replace') as f:
             dlg.set_markdown(f.read())
@@ -523,15 +524,15 @@ class PMGTableViewer(QWidget):
         text = self.slice_input.text().strip()
         for char in text:
             if not char in "[]:,.1234567890iloc":
-                QMessageBox.warning(self, self.tr('Invalid Input'),
-                                    self.tr("invalid character \"%s\" in slicing statement.") % char)
+                QMessageBox.warning(self, QCoreApplication.translate('PMGTableViewer','Invalid Input'),
+                                    QCoreApplication.translate('PMGTableViewer',"invalid character \"%s\" in slicing statement.") % char)
                 return
         try:
             data = eval('data' + text)
         except Exception as exeption:
 
-            QMessageBox.warning(self, self.tr('Invalid Input'),
-                                self.tr(str(exeption)))
+            QMessageBox.warning(self, QCoreApplication.translate('PMGTableViewer','Invalid Input'),
+                                QCoreApplication.translate('PMGTableViewer',str(exeption)))
 
         self.table_view.show_data(data)
 
@@ -543,8 +544,8 @@ class PMGTableViewer(QWidget):
             min_row, max_row = 1, self.table_view.model.rowCount(None)
             current_row = self.table_view.currentIndex().row() + 1
             current_col = self.table_view.currentIndex().column() + 1
-            row, _ = QInputDialog.getInt(self, self.tr('Input Row'),
-                                         self.tr('Target Row No.:({min}~{max})').format(min=min_row, max=max_row),
+            row, _ = QInputDialog.getInt(self, QCoreApplication.translate('PMGTableViewer','Input Row'),
+                                         QCoreApplication.translate('PMGTableViewer','Target Row No.:({min}~{max})').format(min=min_row, max=max_row),
                                          current_row,
                                          min_row, max_row, step=1)
             if _:
